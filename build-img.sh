@@ -24,16 +24,16 @@ multiarch=\n\
 aptsources=Debian\n\
 bootstrap=Deepin\n\
 [Deepin]\n\
-packages=apt ca-certificates systemd\n\
+packages=apt ca-certificates systemd bash init apt-utils vim\n\
 source=https://community-packages.deepin.com/beige/\n\
 suite=beige\n\
 " >/beige.multistrap
 
 multistrap -f /beige.multistrap
 
-echo "deb     https://community-packages.deepin.com/beige/ beige main commercial community" > /beige-rootfs/etc/apt/sources.list && \
-echo "deb-src https://community-packages.deepin.com/beige/ beige main commercial community" >> /beige-rootfs/etc/apt/sources.list
-
+echo "deb [trusted=yes] https://ci.deepin.com/repo/obs/deepin:/Develop:/main/standard/ ./" > /beige-rootfs/etc/apt/sources.list && \
+echo "deb [trusted=yes] https://ci.deepin.com/repo/obs/deepin:/Develop:/dde/deepin_develop/ ./" >> /beige-rootfs/etc/apt/sources.list && \
+echo "deb [trusted=yes] https://ci.deepin.com/repo/obs/deepin:/Develop:/community/deepin_develop/ ./" >> /beige-rootfs/etc/apt/sources.list
 
 # 生成 img
 # 创建一个空白的镜像文件。
