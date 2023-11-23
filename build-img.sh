@@ -35,6 +35,8 @@ echo "deb [trusted=yes] https://ci.deepin.com/repo/obs/deepin:/Develop:/main/sta
 echo "deb [trusted=yes] https://ci.deepin.com/repo/obs/deepin:/Develop:/dde/deepin_develop/ ./" >> /beige-rootfs/etc/apt/sources.list && \
 echo "deb [trusted=yes] https://ci.deepin.com/repo/obs/deepin:/Develop:/community/deepin_develop/ ./" >> /beige-rootfs/etc/apt/sources.list
 
+echo "deepin-tc" > /beige-rootfs/etc/hostname
+
 # 生成 img
 # 创建一个空白的镜像文件。
 dd if=/dev/zero of=/tmp/deepin.img bs=1M count=2048
