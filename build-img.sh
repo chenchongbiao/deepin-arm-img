@@ -24,7 +24,7 @@ multiarch=\n\
 aptsources=Debian\n\
 bootstrap=Deepin\n\
 [Deepin]\n\
-packages=apt ca-certificates systemd bash init apt-utils vim\n\
+packages=apt ca-certificates systemd bash init apt-utils vim ssh cron kmod ifupdown udev\n\
 source=https://community-packages.deepin.com/beige/\n\
 suite=beige\n\
 " >/beige.multistrap
