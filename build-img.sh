@@ -36,6 +36,8 @@ echo "deb [trusted=yes] https://ci.deepin.com/repo/obs/deepin:/Develop:/dde/deep
 echo "deb [trusted=yes] https://ci.deepin.com/repo/obs/deepin:/Develop:/community/deepin_develop/ ./" >> /beige-rootfs/etc/apt/sources.list
 
 echo "deepin-tc" > /beige-rootfs/etc/hostname
+# 设置密码, 使用 openssl passwd -1 "your_passwd" 来生成密码
+sed -i '1s|x|$1$3Y5oJ8mu$WFwHl8ajZfmUTsfHLlvJK/|' /beige-rootfs/etc/passwd
 
 # 生成 img
 # 创建一个空白的镜像文件。
