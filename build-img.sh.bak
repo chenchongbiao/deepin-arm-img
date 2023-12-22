@@ -1,0 +1,53 @@
+#!/bin/bash
+
+set -e
+
+apt update
+
+# 不进行交互安装
+export DEBIAN_FRONTEND=noninteractive
+
+apt install multistrap -y
+
+mkdir -p /beige-rootfs/etc/apt/trusted.gpg.d
+cp deepin.gpg /beige-rootfs/etc/apt/trusted.gpg.d
+
+arch=${1}
+echo -e "[General]\n\
+arch=$arch\n\
+directory=/beige-rootfs/\n\
+cleanup=true\n\
+noauth=false\n\
+unpack=true\n\
+explicitsuite=false\n\
+multiarch=\n\
+aptsources=Debian\n\
+bootstrap=Deepin\n\
+[Deepin]\n\
+packages=apt ca-certificates systemd bash init apt-utils vim ssh cron kmod ifupdown udev\n\
+source=https://community-packages.deepin.com/beige/\n\
+suite=beige\n\
+" >/beige.multistrap
+
+multistrap -f /beige.multistrap
+
+echo "deb [trusted=yes] https://ci.deepin.com/repo/obs/deepin:/Develop:/main/standard/ ./" > /beige-rootfs/etc/apt/sources.list && \
+echo "deb [trusted=yes] https://ci.deepin.com/repo/obs/deepin:/Develop:/dde/deepin_develop/ ./" >> /beige-rootfs/etc/apt/sources.list && \
+echo "deb [trusted=yes] https://ci.deepin.com/repo/obs/deepin:/Develop:/community/deepin_develop/ ./" >> /beige-rootfs/etc/apt/sources.list
+
+echo "deepin-tc" > /beige-rootfs/etc/hostname
+# 设置密码, 使用 openssl passwd -1 "your_passwd" 来生成密码
+sed -i '1s|x|$1$3Y5oJ8mu$WFwHl8ajZfmUTsfHLlvJK/|' /beige-rootfs/etc/passwd
+
+# 生成 img
+# 创建一个空白的镜像文件。
+dd if=/dev/zero of=/tmp/deepin.img bs=1M count=2048
+# 将img文件格式化为ext4文件系统
+mkfs.ext4 /tmp/deepin.img
+mkdir -p /mnt/rootfs
+# 挂载 deepin.img 镜像
+mount -o loop /tmp/deepin.img /mnt/rootfs
+# 拷贝根文件系统到 /mnt/rootfs
+cp -a /beige-rootfs/* /mnt/rootfs/
+# 卸载
+umount /mnt/rootfs

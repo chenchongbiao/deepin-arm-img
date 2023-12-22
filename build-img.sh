@@ -1,53 +1,44 @@
 #!/bin/bash
 
-set -e
+# 何命令失败（退出状态非0），则脚本会终止执行
+set -o errexit
+# 尝试使用未设置值的变量，脚本将停止执行
+set -o nounset
 
-apt update
+ROOTFS=`mktemp -d`
+TARGET_DEVICE=FVP
+TARGET_ARCH=arm64
+COMPONENTS=standard
+DISKSIZE=2048
+readarray -t REPOS < ./profiles/sources.list
+PACKAGES=`cat ./profiles/packages.txt | grep -v "^-" | xargs | sed -e 's/ /,/g'`
+DISKIMG="deepin-$TARGET_DEVICE-$TARGET_ARCH.img"
 
-# 不进行交互安装
-export DEBIAN_FRONTEND=noninteractive
-
-apt install multistrap -y
-
-mkdir -p /beige-rootfs/etc/apt/trusted.gpg.d
-cp deepin.gpg /beige-rootfs/etc/apt/trusted.gpg.d
-
-arch=${1}
-echo -e "[General]\n\
-arch=$arch\n\
-directory=/beige-rootfs/\n\
-cleanup=true\n\
-noauth=false\n\
-unpack=true\n\
-explicitsuite=false\n\
-multiarch=\n\
-aptsources=Debian\n\
-bootstrap=Deepin\n\
-[Deepin]\n\
-packages=apt ca-certificates systemd bash init apt-utils vim ssh cron kmod ifupdown udev\n\
-source=https://community-packages.deepin.com/beige/\n\
-suite=beige\n\
-" >/beige.multistrap
-
-multistrap -f /beige.multistrap
-
-echo "deb [trusted=yes] https://ci.deepin.com/repo/obs/deepin:/Develop:/main/standard/ ./" > /beige-rootfs/etc/apt/sources.list && \
-echo "deb [trusted=yes] https://ci.deepin.com/repo/obs/deepin:/Develop:/dde/deepin_develop/ ./" >> /beige-rootfs/etc/apt/sources.list && \
-echo "deb [trusted=yes] https://ci.deepin.com/repo/obs/deepin:/Develop:/community/deepin_develop/ ./" >> /beige-rootfs/etc/apt/sources.list
-
-echo "deepin-tc" > /beige-rootfs/etc/hostname
-# 设置密码, 使用 openssl passwd -1 "your_passwd" 来生成密码
-sed -i '1s|x|$1$3Y5oJ8mu$WFwHl8ajZfmUTsfHLlvJK/|' /beige-rootfs/etc/passwd
+sudo apt update -y
+sudo apt-get install -y qemu-user-static binfmt-support mmdebstrap arch-test usrmerge usr-is-merged
 
 # 生成 img
 # 创建一个空白的镜像文件。
-dd if=/dev/zero of=/tmp/deepin.img bs=1M count=2048
+dd if=/dev/zero of=$DISKIMG bs=1M count=$DISKSIZE
 # 将img文件格式化为ext4文件系统
-mkfs.ext4 /tmp/deepin.img
-mkdir -p /mnt/rootfs
+mkfs.ext4 $DISKIMG
+
+# 创建根文件系统
+sudo mmdebstrap \
+    --hook-dir=/usr/share/mmdebstrap/hooks/merged-usr \
+    --include=$PACKAGES \
+    --architectures=$TARGET_ARCH $COMPONENTS \
+    --customize=./profiles/stage2.sh \
+    $ROOTFS \
+    "${REPOS[@]}"
+
+sudo echo "deepin-tc" | sudo tee $ROOTFS/etc/hostname > /dev/null
+sudo echo "Asia/Shanghai" | sudo tee $ROOTFS/etc/timezone > /dev/null
+sudo ln -sf /usr/share/zoneinfo/Asia/Shanghai $ROOTFS/etc/localtime
+
 # 挂载 deepin.img 镜像
-mount -o loop /tmp/deepin.img /mnt/rootfs
-# 拷贝根文件系统到 /mnt/rootfs
-cp -a /beige-rootfs/* /mnt/rootfs/
+sudo mount -o loop $DISKIMG $ROOTFS
 # 卸载
-umount /mnt/rootfs
+sudo umount -l $ROOTFS
+sudo losetup -D
+sudo rm -rf $ROOTFS
